@@ -1,0 +1,154 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace BinaryTrees
+{
+    public class BinaryTree<T> : IEnumerable<T> where T : IComparable
+    {
+        private Node<T> root;
+
+        public T this[int position]
+        {
+            get
+            {
+                if (root == null || position < 0 || position >= root.Count)
+                    throw new IndexOutOfRangeException();
+
+                Node<T> node = root;
+                int leftSubtreeSize;
+
+                while (true)
+                {
+                    leftSubtreeSize = node.LeftChild?.Count ?? 0;
+
+                    if (position < leftSubtreeSize)
+                        node = node.LeftChild;
+                    else if (position > leftSubtreeSize)
+                    {
+                        node = node.RightChild;
+                        position -= leftSubtreeSize + 1;
+                    }
+                    else
+                        return node.Data;
+                }
+            }
+        }
+
+        public void Add(T key)
+        {
+            var newNode = new Node<T>(key);
+            if (root == null)
+            {
+                root = newNode;
+                return;
+            }
+
+            Node<T> currentNode = root;
+            Node<T> parentNode = null;
+            int comparisonResult = 0;
+
+            do
+            {
+                parentNode = currentNode;
+                comparisonResult = currentNode.Data.CompareTo(key);
+                currentNode = comparisonResult > 0 ? currentNode.LeftChild : currentNode.RightChild;
+            } while (currentNode != null);
+
+            if (comparisonResult > 0)
+                parentNode.LeftChild = newNode;
+            else
+                parentNode.RightChild = newNode;
+        }
+
+        public bool Contains(T item)
+        {
+            Node<T> currentNode = root;
+            int comparison;
+
+            while (currentNode != null)
+            {
+                comparison = currentNode.Data.CompareTo(item);
+                if (comparison == 0)
+                    return true;
+                else if (comparison > 0)
+                    currentNode = currentNode.LeftChild;
+                else
+                    currentNode = currentNode.RightChild;
+            }
+
+            return false;
+        }
+
+
+		public IEnumerator<T> GetEnumerator() 
+=> root?.GetValues().GetEnumerator() ?? Enumerable.Empty<T>().GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    internal class Node<T> where T : IComparable
+    {
+        private Node<T> parent;
+        public T Data { get; }
+        private Node<T> leftChild;
+        private Node<T> rightChild;
+        public int Count { get; private set; }
+
+        public Node(T data)
+        {
+            Data = data;
+            Count = 1;
+        }
+
+        public Node<T> LeftChild
+        {
+            get => leftChild;
+            set
+            {
+                if (leftChild != null)
+                    ChangeSize(-leftChild.Count);
+                leftChild = value;
+                if (value != null)
+                {
+                    ChangeSize(value.Count);
+                    value.parent = this;
+                }
+            }
+        }
+
+        public Node<T> RightChild
+        {
+            get => rightChild;
+            set
+            {
+                if (rightChild != null)
+                    ChangeSize(-rightChild.Count);
+                rightChild = value;
+                if (value != null)
+                {
+                    ChangeSize(value.Count);
+                    value.parent = this;
+                }
+            }
+        }
+
+        private void ChangeSize(int change)
+        {
+            Count += change;
+            parent?.ChangeSize(change);
+        }
+
+        public IEnumerable<T> GetValues()
+        {
+            if (LeftChild != null)
+                foreach (var value in LeftChild.GetValues())
+                    yield return value;
+            yield return Data;
+            if (RightChild != null)
+                foreach (var value in RightChild.GetValues())
+                    yield return value;
+        }
+    }
+}
